@@ -10,13 +10,24 @@ node {
 		app = docker.build("${application}:${BUILD_NUMBER}")
 	}
 
+	stage('Login to Dockerhub') {
+	  withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+	    docker.withRegistry("https://index.docker.io/v1/", "docker-hub") {
+	      def login = docker.login(username: 'l3nnn', password: 'dckr_pat_FCRGe5-9SwTdJIuU5wx0KPPnF-Y')
+	      if (login.status != "Login Succeeded") {
+	        error("Login to Dockerhub failed")
+	      }
+	    }
+	  }
+	}
+
 	stage('Push image') {
-	  docker.withRegistry('https://hub.docker.com/', 'docker-hub') {
+	  docker.withRegistry('https://index.docker.io/v1/', 'docker-hub') {
 	    app.push("l3nnn/${application}:${BUILD_NUMBER}")
 	  }
 	}
 
 	stage('Deploy') {
-		sh ("docker run -d -p 81:8080 ${application}:${BUILD_NUMBER}")
+		sh ("docker run -d -p 81:8080 -v /var/log/:/var/log/ ${application}:${BUILD_NUMBER}")
 	}
 }
