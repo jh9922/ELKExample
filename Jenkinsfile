@@ -1,28 +1,34 @@
 node {
-    def application = "springbootapp"
+  def application = "springbootapp"
 
-    stage('Clone repository') {
-        checkout scm
-    }
+  stage('Clone repository') {
+    checkout scm
+  }
 
-    stage('Build image') {
-        app = docker.build("${application}:${BUILD_NUMBER}")
-    }
+  stage('Build image') {
+    app = docker.build("${application}:${BUILD_NUMBER}")
+  }
 
-    stage('Login to Docker Hub') {
-        docker.withRegistry('https://registry.hub.docker.com', 'dockerhub-username', 'dockerhub-password') {
-            // Login to Docker Hub registry
-        }
+  stage('Login to Dockerhub') {
+    docker.withRegistry("https://index.docker.io/v1/", "docker-hub") {
+      def login = docker.login(
+        registry: "https://index.docker.io/v1/",
+        username: "DOCKER_HUB_USERNAME",
+        password: "DOCKER_HUB_PASSWORD"
+      )
+      if (login.status != "Login Succeeded") {
+        error("Login to Dockerhub failed")
+      }
     }
+  }
 
-    stage('Push image to Docker Hub') {
-        docker.withRegistry('https://registry.hub.docker.com', 'dockerhub-username', 'dockerhub-password') {
-            // Push the Docker image to Docker Hub registry
-            docker.image("${application}:${BUILD_NUMBER}").push()
-        }
+  stage('Push image') {
+    docker.withRegistry('https://index.docker.io/v1/', 'docker-hub') {
+      app.push("DOCKER_HUB_USERNAME/${application}:${BUILD_NUMBER}")
     }
+  }
 
-    stage('Deploy') {
-        sh ("docker run -d -p 81:8080 -v /var/log/:/var/log/ ${application}:${BUILD_NUMBER}")
-    }
+  stage('Deploy') {
+    sh ("docker run -d -p 81:8080 -v /var/log/:/var/log/ ${application}:${BUILD_NUMBER}")
+  }
 }
