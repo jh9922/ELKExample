@@ -11,9 +11,9 @@ node {
 	}
 
 	stage('Login to Dockerhub') {
-	  withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+	  withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
 	    docker.withRegistry("https://index.docker.io/v1/", "docker-hub") {
-	      def login = docker.login(username: 'l3nnn', password: 'dckr_pat_FCRGe5-9SwTdJIuU5wx0KPPnF-Y')
+	      def login = docker.login(username: l3nnn, password: dckr_pat_FCRGe5-9SwTdJIuU5wx0KPPnF-Y)
 	      if (login.status != "Login Succeeded") {
 	        error("Login to Dockerhub failed")
 	      }
