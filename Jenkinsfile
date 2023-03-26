@@ -1,34 +1,36 @@
 node {
-  def application = "springbootapp"
 
-  stage('Clone repository') {
-    checkout scm
-  }
-
-  stage('Build image') {
-    app = docker.build("${application}:${BUILD_NUMBER}")
-  }
-
-  stage('Login to Dockerhub') {
-    docker.withRegistry("https://index.docker.io/v1/", "docker-hub") {
-      def login = docker.login(
-        registry: "https://index.docker.io/v1/",
-        username: "DOCKER_HUB_USERNAME",
-        password: "DOCKER_HUB_PASSWORD"
-      )
-      if (login.status != "Login Succeeded") {
-        error("Login to Dockerhub failed")
-      }
+    environment {
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub')
+        application = "springbootapp"
     }
-  }
 
-  stage('Push image') {
-    docker.withRegistry('https://index.docker.io/v1/', 'docker-hub') {
-      app.push("DOCKER_HUB_USERNAME/${application}:${BUILD_NUMBER}")
+    stage('Login to Docker Hub') {
+        sh "echo $DOCKERHUB_CREDENTIALS | docker login -u ${DOCKERHUB_CREDENTIALS_USR} --password-stdin"
     }
-  }
 
-  stage('Deploy') {
-    sh ("docker run -d -p 81:8080 -v /var/log/:/var/log/ ${application}:${BUILD_NUMBER}")
-  }
+    stage('Clone repository') {
+        checkout scm
+    }
+
+    stage('Build image') {
+        app = docker.build("${application}:${BUILD_NUMBER}")
+    }
+
+    stage('Push to Docker Hub') {
+        steps {
+            sh "docker tag ${application}:${BUILD_NUMBER} l3nnn/${application}:${BUILD_NUMBER}"
+            sh "docker push l3nnn/${application}:${BUILD_NUMBER}"
+        }
+    }
+
+    stage('Deploy to environment') {
+        sh "docker run -d -p 81:8080 -v /var/log/:/var/log/ l3nnn/${application}:${BUILD_NUMBER}"
+    }
+
+    post {
+        always {
+            sh 'docker logout'
+        }
+    }
 }
